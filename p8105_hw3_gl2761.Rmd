@@ -182,3 +182,85 @@ accel_clean %>%
 
 Based on the graph above, we can see that this patient starts to be active around 7 am, around noon, around 4:30 pm on Thursday, Saturday and Sunday, and is active around 9 pm on most days except Sunday. 
 
+### Problem 3
+
+```{r}
+data("ny_noaa")
+skimr::skim(ny_noaa)
+```
+
+Clean the data 
+```{r}
+ny_noaa_clean = 
+  ny_noaa %>%
+  janitor::clean_names()%>%
+  separate(date, into = c("year", "month", "day"))%>%
+  mutate(
+    year = as.integer(year),
+    month = as.integer(month),
+    month = month.name[month],
+    day = as.integer(day),
+    tmax = as.numeric(tmax)/10,
+    prcp = as.numeric(prcp)/10,
+    tmin = as.numeric(tmin)/10
+    )%>%
+  relocate(year, month, day) 
+```
+
+```{r}
+ny_noaa_clean %>%
+  count(snow) %>%
+  arrange(desc(n))
+```
+The most commonly observed value for the snow variable is 0 because most of the weather stations didn't observe snow most of the time.
+
+```{r}
+ny_noaa_clean %>% 
+  filter(month %in% c('January', 'July')) %>%
+  filter(!is.na(tmax)) %>% 
+  group_by(month, year, id) %>% 
+  summarise(mean_temp = mean(tmax)) %>% 
+  ggplot(aes(x = as.factor(year), y=mean_temp, color = year)) +
+  geom_point() +
+  geom_density(alpha = .5) +
+  facet_grid(.~ month) +
+  labs(
+    title = "Distribution of average max temperature for January and July for each station",
+    x = "Years",
+    y = "Average max temperature",
+  ) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 5))
+```
+
+The average temperature in July is higher than in January. In 1982 there is a day in January that is extremely cold day. In 1988 there is a day much cooler than usual.
+
+```{r}
+ny_noaa_clean%>%
+  filter(!is.na(tmax)| !is.na(tmin)) %>% 
+  ggplot(aes(x = tmax, y = tmin)) + 
+  geom_hex() +
+  labs(
+    title = "tmax vs tmin for whole dataset",
+    x = "Max Temperature",
+    y = "Min Temperature",
+  ) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 5))
+```
+
+Tmax vs Tmin has the most density in the region of (0,0) and (15,25).
+
+```{r}
+ny_noaa_clean%>%
+  filter(!is.na(snow)) %>%
+  filter(snow>0 & snow<100)%>%
+  group_by(year)%>%
+  ggplot(aes(x=snow, color=as.factor(year))) +
+  geom_density(alpha=0.5)+
+  labs(
+    title = "Distribution of snow by year",
+    x = "Snowfall(mm)"
+  ) +
+  theme(axis.text.x = element_text(angle = 90, hjust = 5))
+```
+
+According to the graph above, the snowfall density has a similar trend in all the years. Snowfall gets to it's largest density around 12mm and 25mm.
